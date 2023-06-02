@@ -241,22 +241,34 @@ all-one : ∀{n} → Vec Bool n
 all-one {zero}   = Vec.[]
 all-one {suc n}  = true Vec.∷ all-one
 
-data Crypto (ST : Set) : Set → Set where
-  coin       : Crypto ST Bool
-  uniform    : ∀ n → Crypto ST (BitVec n)
-  set-state  : ST → Crypto ST ⊤
-  get-state  : Crypto ST ST
-  returnC    : ∀{a : Set} → a → Crypto ST a
-  _>>=C_     : ∀{a b : Set} → Crypto ST a → (a → Crypto ST b) → Crypto ST b
+data Crypto (ST : Set)(A : Set) : Set where
+  coinC       : (Bool → Crypto ST A) → Crypto ST A
+  uniformC    : ∀ n → (BitVec n → Crypto ST A) → Crypto ST A 
+  set-stateC  : ST → Crypto ST A → Crypto ST A
+  get-stateC  : (ST → Crypto ST A) → Crypto ST A
+  returnC    : A → Crypto ST A
 
 open Crypto
 
 extC : ∀{ST a b : Set} → (a → Crypto ST b) → Crypto ST a → Crypto ST b
-extC f c = c >>=C f
+extC f (coinC k) = coinC (extC f ∘ k) 
+extC f (uniformC n k) = uniformC n (extC f ∘ k)
+extC f (set-stateC s c) = set-stateC s (extC f c)
+extC f (get-stateC k) = get-stateC (extC f ∘ k)
+extC f (returnC x) = f x
 
--- convert to Wouter style
--- can define a bind that uses >>=C and shuffles computations to the
--- right and then the laws will hold
+coin : ∀{ST} → Crypto ST Bool
+coin = coinC returnC
+
+uniform : ∀{ST} n → Crypto ST (BitVec n)
+uniform n = uniformC n returnC
+
+set-state : ∀{ST} → ST → Crypto ST ⊤
+set-state st = set-stateC st (returnC _)
+
+get-state : ∀{ST} → Crypto ST ST
+get-state = get-stateC returnC
+
 
 postulate
   claw1   : ∀{ST A B}(f : A → Crypto ST B)(a : A) → extC f (returnC a) ≡ f a
@@ -269,7 +281,7 @@ instance
   CryptoMonad : ∀{ST} → Monad (Crypto ST)
   CryptoMonad = record {
     return = returnC ;
-    ext = λ f x → x >>=C f ;
+    ext  = extC;  
     law1 = claw1 ;
     law2 = claw2 ;
     law3 = claw3 }
@@ -477,5 +489,7 @@ data _≡E_ : ∀{ST A} → Crypto ST A → Crypto ST A → Set where
   symE  : ∀{ST A}{c c' : Crypto ST A} → c ≡E c'
   transE : ∀{ST A}{c c' c'' : Crypto ST A} → c ≡E c' → c' ≡E c'' → c ≡E c''
   uniform⊕E : ∀{ST n pt} → fmap (λ k → k ⊗ pt) (uniform n) ≡E uniform {ST} n
+
+-- -}
 ```
 
