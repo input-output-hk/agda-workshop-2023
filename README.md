@@ -9,13 +9,12 @@
 To generate html, 
 
 ```
-git clone https://github.com/input-output-hk/categorical-crypto.git
-cd categorical-crypto/Parma
+git clone https://github.com/input-output-hk/agda-workshop-2023
+cd agda-workshop-2023
 agda --library-file=$HOME/.agda/libraries --html --html-highlight=all UU.lagda.md
-git checkout gh-pages
-\cp -a Parma/*.html ../
-git add ../*.html
-\cp ../{UU,index}.md
+git checkout -b gh-pages
+\cp -a html/* .
+git add .
 git commit -m "updating html"
 git push
 ```
