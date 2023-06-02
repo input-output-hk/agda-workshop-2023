@@ -1,4 +1,4 @@
-# categorical-crypto
+# agda-workshop-2023
 
 ## Notes from the 2023 IO Agda Workshop in Parma, Italy
 
